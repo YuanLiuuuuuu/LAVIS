@@ -1062,7 +1062,6 @@ class BertLMHeadModel(BertPreTrainedModel):
         sequence_output = outputs[0]
         if query_embeds is not None:
             sequence_output = outputs[0][:, query_embeds.shape[1] :, :]
-
         prediction_scores = self.cls(sequence_output)
 
         if return_logits:

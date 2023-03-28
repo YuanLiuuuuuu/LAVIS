@@ -98,8 +98,8 @@ class BlipITM(BlipBase):
 
             sim = image_feat @ text_feat.t()
             return sim
+        
     def itm_rank(self, image_embeds, image_atts, encoder_input_ids, match_head='itm'):
-        # breakpoint()
         encoder_input_ids = encoder_input_ids.clone()
         encoder_input_ids = encoder_input_ids[:, 3:]
         text_attention_mask = (encoder_input_ids != self.tokenizer.pad_token_id).long()

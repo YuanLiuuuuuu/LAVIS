@@ -56,7 +56,6 @@ class Blip2Qformer(Blip2Base):
         max_txt_len=32,
     ):
         super().__init__()
-
         self.tokenizer = self.init_tokenizer()
 
         self.visual_encoder, self.ln_vision = self.init_vision_encoder(
