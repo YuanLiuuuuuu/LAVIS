@@ -11,6 +11,7 @@ import logging
 import os
 import time
 from pathlib import Path
+import glob
 
 import torch
 import torch.distributed as dist
@@ -362,6 +363,7 @@ class RunnerBase:
         self.log_config()
 
         # resume from checkpoint if specified
+        self.resume_ckpt_path = self._find_the_latest_checkpoint()
         if not self.evaluate_only and self.resume_ckpt_path is not None:
             self._load_checkpoint(self.resume_ckpt_path)
 
@@ -588,7 +590,21 @@ class RunnerBase:
             "checkpoint_{}.pth".format("best" if is_best else cur_epoch),
         )
         logging.info("Saving checkpoint at epoch {} to {}.".format(cur_epoch, save_to))
+        last_checkpoint = self._find_the_latest_checkpoint()
+        if last_checkpoint is not None:
+            os.remove(last_checkpoint)
         torch.save(save_obj, save_to)
+
+    @main_process
+    def _find_the_latest_checkpoint(self):
+        """
+        Find the latest checkpoint.
+        """
+        checkpoints = glob.glob(os.path.join(self.output_dir, "checkpoint_*.pth"))
+        if not checkpoints:
+            return None
+        checkpoints.sort(key=os.path.getmtime, reverse=True)
+        return checkpoints[0]
 
     def _reload_best_model(self, model):
         """
