@@ -334,6 +334,10 @@ class RunnerBase:
     def resume_ckpt_path(self):
         return self.config.run_cfg.get("resume_ckpt_path", None)
 
+    @resume_ckpt_path.setter
+    def resume_ckpt_path(self, resume_ckpt_path):
+        self.config.run_cfg.update({"resume_ckpt_path": resume_ckpt_path})
+
     @property
     def train_loader(self):
         train_dataloader = self.dataloaders["train"]
@@ -345,15 +349,19 @@ class RunnerBase:
 
         output_dir = lib_root / self.config.run_cfg.output_dir / self.job_id
         result_dir = output_dir / "result"
+        ckpt_dir = lib_root / self.config.run_cfg.output_dir  
 
         output_dir.mkdir(parents=True, exist_ok=True)
         result_dir.mkdir(parents=True, exist_ok=True)
+        ckpt_dir.mkdir(parents=True, exist_ok=True)
 
         registry.register_path("result_dir", str(result_dir))
         registry.register_path("output_dir", str(output_dir))
+        registry.register_path("ckpt_dir", str(ckpt_dir))
 
         self.result_dir = result_dir
         self.output_dir = output_dir
+        self.ckpt_dir = ckpt_dir
 
     def train(self):
         start_time = time.time()
@@ -586,7 +594,7 @@ class RunnerBase:
             "epoch": cur_epoch,
         }
         save_to = os.path.join(
-            self.output_dir,
+            self.ckpt_dir,
             "checkpoint_{}.pth".format("best" if is_best else cur_epoch),
         )
         logging.info("Saving checkpoint at epoch {} to {}.".format(cur_epoch, save_to))
@@ -595,12 +603,11 @@ class RunnerBase:
             os.remove(last_checkpoint)
         torch.save(save_obj, save_to)
 
-    @main_process
     def _find_the_latest_checkpoint(self):
         """
         Find the latest checkpoint.
         """
-        checkpoints = glob.glob(os.path.join(self.output_dir, "checkpoint_*.pth"))
+        checkpoints = glob.glob(os.path.join(self.ckpt_dir, "checkpoint_*.pth"))
         if not checkpoints:
             return None
         checkpoints.sort(key=os.path.getmtime, reverse=True)
@@ -610,7 +617,7 @@ class RunnerBase:
         """
         Load the best checkpoint for evaluation.
         """
-        checkpoint_path = os.path.join(self.output_dir, "checkpoint_best.pth")
+        checkpoint_path = os.path.join(self.ckpt_dir, "checkpoint_best.pth")
 
         logging.info("Loading checkpoint from {}.".format(checkpoint_path))
         checkpoint = torch.load(checkpoint_path, map_location="cpu")
